@@ -7,6 +7,7 @@ import android.os.AsyncTask;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.widget.Toast;
 
 /**
  * Created by Kadir on 29.03.2018.
@@ -17,10 +18,13 @@ public class MyStartedService extends Service {
     private static final String TAG = MyStartedService.class.getSimpleName();
     MediaPlayer player;
 
+    myAsyncTask gorev;
+
     @Override
     public void onCreate() {
 
         Log.i(TAG,"OnCreate Çağrıldı. "+" "+Thread.currentThread().getName());
+        gorev = new myAsyncTask();
         super.onCreate();
     }
 
@@ -44,7 +48,8 @@ public class MyStartedService extends Service {
         player.start();*/
 
         int sleepTime = intent.getIntExtra("sleepTime",1);
-        new myAsyncTask().execute(sleepTime);
+        //new myAsyncTask().execute(sleepTime);
+        gorev.execute(sleepTime); // Burada önceden oluşturulan nesneye parametre verdik. Üsttekiyle aynı şey.
 
         return START_REDELIVER_INTENT;
     }
@@ -53,10 +58,11 @@ public class MyStartedService extends Service {
     public void onDestroy() {
         Log.i(TAG,"OnDestroy Çağrıldı. "+" "+Thread.currentThread().getName());
         //player.stop();
+        gorev.cancel(true);
         super.onDestroy();
     }
 
-    class myAsyncTask extends AsyncTask<Integer,Void,Void>{
+    class myAsyncTask extends AsyncTask<Integer,String,String>{
 
         private final String TAG = myAsyncTask.class.getSimpleName();
 
@@ -67,33 +73,48 @@ public class MyStartedService extends Service {
         }
 
         @Override
-        protected Void doInBackground(Integer... voids) {
+        protected String doInBackground(Integer... voids) {
             Log.e("DOINBACKGROUND CAĞRILDI"," "+Thread.currentThread().getName());
             int sleepTime = voids[0];
 
-            try {
+            int sayac = 0;
+            if(!gorev.isCancelled()){
+                while(sayac < sleepTime){
+                    sayac++;
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt(); // Thread direkt olarak kesilir.
+                    }
+                    publishProgress("Geçen Süre : " +sayac); // Süreyi fonksiyon sayesinde onPostExecute fonksiyonuna gönderdik.
+                }
+            }
+
+            /*try {
                 Thread.sleep(sleepTime*1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
-            return null;
+            }*/
+            return "İŞLEM BAŞARILI";
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
-            Log.e("ONPOST EXECUTE CAĞRILDI"," "+Thread.currentThread().getName());
+        protected void onPostExecute(String aVoid) {
+            Log.e(TAG,"ONPOST EXECUTE CAĞRILDI "+Thread.currentThread().getName());
+            Toast.makeText(MyStartedService.this,aVoid,Toast.LENGTH_SHORT).show();
+            stopSelf();
             super.onPostExecute(aVoid);
         }
 
         @Override
-        protected void onProgressUpdate(Void... values) {
-            Log.e("PROGRESSUPDATE CAĞRILDI"," "+Thread.currentThread().getName());
+        protected void onProgressUpdate(String... values) {
+            Log.e(TAG,"PROGRESSUPDATE CAĞRILDI, Süre : " +values[0]+"  "+Thread.currentThread().getName()); // Burada values kullanarak süreye ulaştık.
             super.onProgressUpdate(values);
         }
 
         @Override
         protected void onCancelled() {
-            Log.e("ONCANCEL CAĞRILDI"," "+Thread.currentThread().getName());
+            Log.e(TAG,"ONCANCEL CAĞRILDI "+Thread.currentThread().getName());
             super.onCancelled();
         }
     }
