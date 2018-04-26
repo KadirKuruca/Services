@@ -24,4 +24,10 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this,MyStartedService.class);
         stopService(intent);
     }
+
+    public void intentServiceButton(View view) {
+
+        Intent intent = new Intent(this,Main2Activity.class);
+        startActivity(intent);
+    }
 }
